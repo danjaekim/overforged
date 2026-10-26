@@ -5,8 +5,11 @@
 //             request revalidates so the HTTP cache cannot serve a mix of old and new modules), and the
 //             cached copy when the network fails.
 // Bump CACHE to drop every old entry. docs/architecture.md (M8, offline).
+// Several games can share one origin (github.io/<repo>/ pages do), and caches are per origin, so a worker
+// only ever deletes caches that carry its own prefix.
 
-const CACHE = 'overforged-v3';
+const PREFIX = 'overforged-';
+const CACHE = PREFIX + 'v3';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png', './icons/icon-maskable-512.png'];
 
 // Every module reachable from main.js through static import/export-from statements.
@@ -45,7 +48,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith(PREFIX) && k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
